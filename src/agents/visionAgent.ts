@@ -3,6 +3,7 @@
 // ============================================
 
 import { callGemini, cleanJsonResponse } from './geminiClient';
+import { safeJsonParse } from '@/utils/safeJson';
 
 export interface VisionResult {
   found: boolean;
@@ -40,7 +41,7 @@ Responde SOLO con un objeto JSON válido (sin markdown):
   try {
     const response = await callGemini(prompt);
     const cleaned = cleanJsonResponse(response);
-    const parsed = JSON.parse(cleaned);
+    const parsed = safeJsonParse(cleaned);
     
     console.log('✅ Vision Agent:', parsed);
     return parsed;

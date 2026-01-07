@@ -5,6 +5,7 @@
 import { callGemini, cleanJsonResponse } from './geminiClient';
 import type { SpeechResult } from './speechAgent';
 import type { VisionResult } from './visionAgent';
+import { safeJsonParse } from '@/utils/safeJson';
 
 export interface RobotAction {
   type: 'move_forward' | 'move_backward' | 'turn_left' | 'turn_right' | 'stop';
@@ -57,7 +58,7 @@ Tipos de acción disponibles:
   try {
     const response = await callGemini(prompt);
     const cleaned = cleanJsonResponse(response);
-    const parsed = JSON.parse(cleaned);
+    const parsed = safeJsonParse<ActionPlan>(cleaned);
     
     console.log('✅ Planner Agent:', parsed);
     return parsed;

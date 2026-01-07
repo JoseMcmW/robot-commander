@@ -36,7 +36,7 @@ export default function App() {
 
   // Comando de prueba rápido
   const testCommand = () => {
-    handleVoiceCommand('Robot muévete hacia adelante');
+    handleVoiceCommand('Robot muévete hacia arriba');
   };
 
   return (
