@@ -83,5 +83,14 @@ function getDemoResponse(prompt: string): string {
  * Helper para limpiar respuestas JSON de Gemini
  */
 export function cleanJsonResponse(response: string): string {
-  return response.replace(/```json|```/g, '').trim();
+  if (!response || typeof response !== 'string') return '';
+
+  // Remove common markdown fences and surrounding whitespace
+  const s = response.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
+
+  // Try to extract the first JSON object block
+  const match = s.match(/\{[\s\S]*\}/);
+  if (match) return match[0].trim();
+
+  return s;
 }

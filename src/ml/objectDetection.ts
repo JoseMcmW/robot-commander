@@ -9,11 +9,24 @@ export class ObjectDetector {
   async initialize() {
     // ⬇️ TIPADO CORRECTO
     setWasmPaths('/tfjs/');
-
-    await tf.setBackend('wasm');
-    await tf.ready();
-
-    console.log('🧠 TFJS backend:', tf.getBackend());
+    // Try to use WebGL for better performance, fall back to WASM, then CPU
+    try {
+      await tf.setBackend('webgl');
+      await tf.ready();
+      console.log('🧠 TFJS backend set to', tf.getBackend());
+    } catch (webglErr) {
+      console.warn('⚠️ WebGL backend unavailable, falling back to WASM', webglErr);
+      try {
+        await tf.setBackend('wasm');
+        await tf.ready();
+        console.log('🧠 TFJS backend set to', tf.getBackend());
+      } catch (wasmErr) {
+        console.warn('⚠️ WASM backend failed, falling back to CPU', wasmErr);
+        await tf.setBackend('cpu');
+        await tf.ready();
+        console.log('🧠 TFJS backend set to', tf.getBackend());
+      }
+    }
 
     this.model = await cocoSsd.load();
     console.log('✅ COCO-SSD Model loaded');
