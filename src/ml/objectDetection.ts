@@ -26,9 +26,11 @@ export class ObjectDetector {
   }
 
   private async _doInitialize() {
-    // Silenciar warnings de TensorFlow.js durante la inicialización de backends
+    // Configuraciones para mejor precisión
     tf.env().set('WEBGL_VERSION', 2);
     tf.env().set('WEBGL_CPU_FORWARD', false);
+    tf.env().set('WEBGL_PACK', true); // Mejora performance en WebGL
+    tf.env().set('WEBGL_FORCE_F16_TEXTURES', false); // Mejor precisión con F32
 
     // Configurar WASM paths
     setWasmPaths('/tfjs/');
@@ -73,13 +75,18 @@ export class ObjectDetector {
       throw new Error('Failed to initialize any TensorFlow.js backend');
     }
 
-    // Cargar modelo COCO-SSD
-    this.model = await cocoSsd.load();
-    console.log('✅ COCO-SSD Model loaded');
+    // Cargar modelo COCO-SSD con configuración optimizada para mejor precisión
+    // mobilenet_v2 es más preciso que mobilenet_v1 (default)
+    this.model = await cocoSsd.load({
+      base: 'mobilenet_v2', // Modelo más preciso (vs mobilenet_v1)
+    });
+    console.log('✅ COCO-SSD Model loaded (mobilenet_v2 - high accuracy)');
   }
 
   async detect(video: HTMLVideoElement) {
     if (!this.model) throw new Error('Model not loaded');
-    return this.model.detect(video);
+
+    // Configuración optimizada para mejor precisión
+    return this.model.detect(video, 20, 0.5); // maxNumBoxes: 20, scoreThreshold: 0.5
   }
 }

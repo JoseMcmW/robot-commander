@@ -70,7 +70,7 @@ export interface SpeechRecognitionEvent extends Event {
  * Evento de error de reconocimiento
  */
 export interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: 
+  readonly error:
     | 'no-speech'
     | 'aborted'
     | 'audio-capture'
@@ -90,11 +90,11 @@ export interface SpeechRecognition extends EventTarget {
   interimResults: boolean;
   lang: string;
   maxAlternatives: number;
-  
+
   start(): void;
   stop(): void;
   abort(): void;
-  
+
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
@@ -128,13 +128,13 @@ declare global {
 export interface TargetProperties {
   /** Nombre del objeto objetivo */
   target?: string;
-  
+
   /** Color del objeto (ej: 'rojo', 'red') */
   color?: string;
-  
+
   /** Dirección de movimiento */
   direction?: string;
-  
+
   /** Propiedades adicionales */
   [key: string]: string | undefined;
 }
