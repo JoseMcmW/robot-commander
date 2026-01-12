@@ -1,60 +1,179 @@
-import { useState, useEffect } from 'react';
-import { Mic, MicOff } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Mic, MicOff, Send } from 'lucide-react';
+import type {
+  SpeechRecognition,
+  SpeechRecognitionEvent,
+  SpeechRecognitionErrorEvent
+} from '@/types';
 
-export function VoiceInput({ onCommand }: { onCommand: (text: string) => void }) {
+interface VoiceInputProps {
+  onCommand: (text: string) => void;
+}
+
+export function VoiceInput({ onCommand }: VoiceInputProps) {
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [recognition, setRecognition] = useState<any>(null);
+  const [manualInput, setManualInput] = useState('');
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [supported] = useState(Boolean(SpeechRecognitionCtor));
+  const lastTranscriptRef = useRef('');
+
+  // Función para enviar el comando
+  const sendCommand = useCallback((text: string) => {
+    if (text.trim()) {
+      console.log('🎤 Enviando comando:', text);
+      onCommand(text.trim());
+      setTranscript('');
+      lastTranscriptRef.current = '';
+    }
+  }, [onCommand]);
+
+  // Función para detener la escucha y enviar si hay contenido
+  const stopAndSend = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch { /* ignore */ }
+    }
+    if (lastTranscriptRef.current.trim()) {
+      sendCommand(lastTranscriptRef.current);
+    }
+    setIsListening(false);
+  }, [sendCommand]);
 
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window) {
-      const recognition = new (window as any).webkitSpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'es-ES'; // Español
+    if (!SpeechRecognitionCtor) return;
 
-      recognition.onresult = (event: any) => {
-        const current = event.resultIndex;
-        const transcript = event.results[current][0].transcript;
-        setTranscript(transcript);
+    const recog = new SpeechRecognitionCtor();
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.lang = 'es-ES';
+    recog.maxAlternatives = 1;
 
-        if (event.results[current].isFinal) {
-          onCommand(transcript);
-        }
-      };
+    recog.onresult = (event: SpeechRecognitionEvent) => {
+      let currentTranscript = '';
 
-      setRecognition(recognition);
-    }
-  }, []);
+      for (let i = 0; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+
+      console.log('🎤 Transcript:', currentTranscript);
+      setTranscript(currentTranscript);
+      lastTranscriptRef.current = currentTranscript;
+    };
+
+    recog.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('❌ Error de reconocimiento de voz:', event.error);
+      if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        setIsListening(false);
+      }
+      if (event.error === 'not-allowed') {
+        setTranscript('⚠️ Permisos de micrófono denegados. Usa el campo de texto.');
+      }
+    };
+
+    recog.onend = () => {
+      console.log('🔚 Reconocimiento terminado');
+      // No hacer nada aquí - el usuario controla manualmente
+    };
+
+    recognitionRef.current = recog;
+
+    return () => {
+      try { recog.stop(); } catch { /* ignore */ }
+    };
+  }, [SpeechRecognitionCtor]);
 
   const toggleListening = () => {
-    if (isListening) {
-      recognition?.stop();
-    } else {
-      recognition?.start();
+    if (!supported) {
+      setTranscript('⚠️ Speech Recognition no soportado. Usa el campo de texto.');
+      return;
     }
-    setIsListening(!isListening);
+
+    if (isListening) {
+      // Detener y enviar lo que haya
+      stopAndSend();
+    } else {
+      // Iniciar escucha
+      setTranscript('🎤 Escuchando... (haz clic otra vez para enviar)');
+      lastTranscriptRef.current = '';
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error('Error starting recognition:', e);
+        // Reiniciar el reconocimiento si falla
+        setTimeout(() => {
+          try {
+            recognitionRef.current?.start();
+            setIsListening(true);
+          } catch { /* ignore */ }
+        }, 100);
+      }
+    }
+  };
+
+  // Manejar envío manual
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualInput.trim()) {
+      sendCommand(manualInput);
+      setManualInput('');
+    }
   };
 
   return (
-    <div className="bg-gray-800 p-4 rounded-lg">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-bold">Control por Voz</h3>
+    <div className="bg-slate-800/50 backdrop-blur-sm p-3 sm:p-4 rounded-xl border border-slate-700/50">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-white font-bold flex items-center gap-2 text-sm sm:text-base">
+          {isListening ? <Mic className="text-red-400 animate-pulse" size={18} /> : <MicOff className="text-slate-400" size={18} />}
+          Control por Voz
+        </h3>
         <button
           onClick={toggleListening}
-          className={`p-3 rounded-full ${
-            isListening ? 'bg-red-600 animate-pulse' : 'bg-blue-600'
+          className={`p-2 sm:p-3 rounded-full transition-all ${
+            isListening
+              ? 'bg-red-600 animate-pulse shadow-lg shadow-red-500/50'
+              : 'bg-blue-600 hover:bg-blue-500'
           }`}
+          title={isListening ? 'Haz clic para enviar el comando' : 'Haz clic para empezar a hablar'}
         >
-          {isListening ? <Mic className="text-white" /> : <MicOff className="text-white" />}
+          {isListening ? <Mic className="text-white" size={18} /> : <MicOff className="text-white" size={18} />}
         </button>
       </div>
-      
-      <div className="bg-gray-900 p-3 rounded min-h-[60px]">
-        <p className="text-gray-400 text-sm">
-          {transcript || 'Di algo como: "Robot, ve hacia el objeto rojo"'}
+
+      {/* Transcripción de voz */}
+      <div className="bg-slate-900/50 p-2.5 sm:p-3 rounded-lg min-h-[48px] mb-3">
+        <p className={`text-xs sm:text-sm break-words ${transcript ? 'text-white' : 'text-slate-500'}`}>
+          {transcript || (supported ? 'Haz clic en el micrófono → habla → haz clic otra vez para enviar' : 'Speech Recognition no soportado')}
         </p>
       </div>
+
+      {/* Instrucción adicional cuando está escuchando */}
+      {isListening && (
+        <p className="text-xs text-amber-400 mb-3">
+          👆 Cuando termines de hablar, haz clic en el botón rojo para enviar el comando
+        </p>
+      )}
+
+      {/* Input manual como alternativa */}
+      <form onSubmit={handleManualSubmit} className="flex gap-2">
+        <input
+          type="text"
+          value={manualInput}
+          onChange={(e) => setManualInput(e.target.value)}
+          placeholder="Escribe un comando aquí..."
+          className="flex-1 bg-slate-900/50 border border-slate-700 rounded-lg px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+        />
+        <button
+          type="submit"
+          disabled={!manualInput.trim()}
+          className="bg-green-600 hover:bg-green-500 disabled:bg-slate-700 disabled:cursor-not-allowed px-2.5 sm:px-3 py-2 rounded-lg transition-colors flex-shrink-0"
+        >
+          <Send size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
+        </button>
+      </form>
     </div>
   );
 }

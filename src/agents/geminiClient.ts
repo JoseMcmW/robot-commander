@@ -3,7 +3,7 @@
 // ============================================
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent';
 
 /**
  * Función principal para llamar a Gemini API
@@ -57,7 +57,7 @@ function getDemoResponse(prompt: string): string {
       properties: { direction: 'forward' }
     });
   }
-  
+
   if (prompt.includes('Objetos detectados')) {
     return JSON.stringify({
       found: true,
@@ -66,7 +66,7 @@ function getDemoResponse(prompt: string): string {
       position: 'center'
     });
   }
-  
+
   if (prompt.includes('planificador')) {
     return JSON.stringify({
       actions: [
@@ -75,7 +75,7 @@ function getDemoResponse(prompt: string): string {
       reasoning: 'Moviéndose hacia adelante (modo demo)'
     });
   }
-  
+
   return '{}';
 }
 
@@ -83,5 +83,14 @@ function getDemoResponse(prompt: string): string {
  * Helper para limpiar respuestas JSON de Gemini
  */
 export function cleanJsonResponse(response: string): string {
-  return response.replace(/```json|```/g, '').trim();
+  if (!response || typeof response !== 'string') return '';
+
+  // Remove common markdown fences and surrounding whitespace
+  const s = response.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
+
+  // Try to extract the first JSON object block
+  const match = s.match(/\{[\s\S]*\}/);
+  if (match) return match[0].trim();
+
+  return s;
 }

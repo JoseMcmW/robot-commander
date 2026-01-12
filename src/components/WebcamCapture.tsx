@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { ObjectDetector } from '@/ml/objectDetection';
+import { analyzeRegionColor } from '@/ml/colorDetection';
 import { Camera, Loader2 } from 'lucide-react';
+import type { Detection } from '@/types';
 
 interface WebcamCaptureProps {
-  onDetectionsUpdate?: (detections: any[]) => void;
+  onDetectionsUpdate?: (detections: Detection[]) => void;
 }
 
 export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
@@ -11,19 +13,99 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [detector] = useState(() => new ObjectDetector());
   const [isLoading, setIsLoading] = useState(true);
-  const [detections, setDetections] = useState<any[]>([]);
+  const [detections, setDetections] = useState<Detection[]>([]);
+  function drawDetections(predictions: Detection[], videoOnly = false) {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
+
+    // Usar willReadFrequently para evitar warnings de performance
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    // Ajustar tamaño del canvas al video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // IMPORTANTE: Dibujar el video primero
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    if (videoOnly) return;
+
+    // Dibujar las detecciones encima
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 3;
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#00ff00';
+
+    predictions.forEach((prediction) => {
+      const [x, y, width, height] = prediction.bbox;
+      // Rectángulo
+      ctx.strokeRect(x, y, width, height);
+      // Fondo para el texto
+      const text = `${prediction.class} (${(prediction.score * 100).toFixed(0)}%)`;
+      const textWidth = ctx.measureText(text).width;
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+      ctx.fillRect(x, y > 25 ? y - 25 : y, textWidth + 10, 25);
+      // Texto
+      ctx.fillStyle = '#000000';
+      ctx.fillText(text, x + 5, y > 25 ? y - 5 : y + 20);
+    });
+  }
+
+  const startDetection = useCallback(async () => {
+    if (!videoRef.current) return;
+    const detect = async () => {
+      try {
+        const predictions = await detector.detect(videoRef.current!);
+
+        // Enrich predictions with simple color analysis per bbox
+        const enriched = predictions.map((p) => ({ ...p } as Detection));
+
+        // draw video first so we can sample pixels
+        drawDetections(enriched, true); // pass flag to draw video only
+
+        // sample each bbox for color
+        enriched.forEach((p) => {
+          try {
+            const [x, y, width, height] = p.bbox.map((v: number) => Math.max(0, Math.floor(v)));
+            // Usar willReadFrequently para evitar warnings de performance
+            const ctx = canvasRef.current?.getContext('2d', { willReadFrequently: true });
+            if (ctx && width > 0 && height > 0) {
+              const img = ctx.getImageData(x, y, width, height);
+              const colorAnalysis = analyzeRegionColor(img, 0.12); // threshold
+              p.colorAnalysis = colorAnalysis;
+            }
+          } catch {
+            // ignore sampling errors
+          }
+        });
+
+        setDetections(enriched);
+        if (onDetectionsUpdate) onDetectionsUpdate(enriched);
+        drawDetections(enriched);
+      } catch (error) {
+        console.error('Error en detección:', error);
+      }
+      requestAnimationFrame(detect);
+    };
+    detect();
+  }, [detector, onDetectionsUpdate]);
 
   useEffect(() => {
+    // Copy ref to avoid stale closure in cleanup
+    const currentVideo = videoRef.current;
+
     async function setup() {
       try {
         // Inicializar modelo
         await detector.initialize();
-        
+
         // Iniciar webcam
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: 640, height: 480 } 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480 }
         });
-        
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
@@ -37,76 +119,18 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
         setIsLoading(false);
       }
     }
-    
+
     setup();
 
     return () => {
-      // Cleanup
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      // Cleanup - use copied ref to avoid stale ref issues
+      if (currentVideo?.srcObject) {
+        const tracks = (currentVideo.srcObject as MediaStream).getTracks();
         tracks.forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [detector, startDetection]);
 
-  async function startDetection() {
-    if (!videoRef.current) return;
-    
-    const detect = async () => {
-      try {
-        const predictions = await detector.detect(videoRef.current!);
-        setDetections(predictions);
-        if (onDetectionsUpdate) {
-          onDetectionsUpdate(predictions);
-        }
-        drawDetections(predictions);
-      } catch (error) {
-        console.error('Error en detección:', error);
-      }
-      requestAnimationFrame(detect);
-    };
-    
-    detect();
-  }
-
-  function drawDetections(predictions: any[]) {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    if (!canvas || !video) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Ajustar tamaño del canvas al video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // IMPORTANTE: Dibujar el video primero
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Dibujar las detecciones encima
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 3;
-    ctx.font = 'bold 18px Arial';
-    ctx.fillStyle = '#00ff00';
-
-    predictions.forEach(prediction => {
-      const [x, y, width, height] = prediction.bbox;
-      
-      // Rectángulo
-      ctx.strokeRect(x, y, width, height);
-      
-      // Fondo para el texto
-      const text = `${prediction.class} (${(prediction.score * 100).toFixed(0)}%)`;
-      const textWidth = ctx.measureText(text).width;
-      ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
-      ctx.fillRect(x, y > 25 ? y - 25 : y, textWidth + 10, 25);
-      
-      // Texto
-      ctx.fillStyle = '#000000';
-      ctx.fillText(text, x + 5, y > 25 ? y - 5 : y + 20);
-    });
-  }
 
   return (
     <div className="space-y-4">
@@ -119,19 +143,19 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
             </div>
           </div>
         )}
-        
+
         {/* Video oculto (solo para captura) */}
-        <video 
-          ref={videoRef} 
+        <video
+          ref={videoRef}
           style={{ display: 'none' }}
           playsInline
           autoPlay
           muted
         />
-        
+
         {/* Canvas que muestra video + detecciones */}
-        <canvas 
-          ref={canvasRef} 
+        <canvas
+          ref={canvasRef}
           className="w-full rounded-lg border-2 border-blue-500 bg-black"
         />
       </div>
@@ -148,8 +172,8 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
             </span>
           ) : (
             detections.map((d, i) => (
-              <span 
-                key={i} 
+              <span
+                key={i}
                 className="px-3 py-1 bg-green-600 text-white rounded-full text-sm"
               >
                 {d.class} ({(d.score * 100).toFixed(0)}%)

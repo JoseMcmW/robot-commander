@@ -2,57 +2,180 @@
 // VISION AGENT - Analiza objetos detectados
 // ============================================
 
-import { callGemini, cleanJsonResponse } from './geminiClient';
+import type { Detection, TargetProperties } from '@/types';
 
 export interface VisionResult {
   found: boolean;
   bestMatch: string | null;
   confidence: number;
   position: 'left' | 'center' | 'right';
+  verticalPosition: 'top' | 'middle' | 'bottom';
+  normalizedX: number;
+  normalizedY: number;
+  requestedTarget?: string; // Qué pidió el usuario
 }
 
+// Constantes del video
+const VIDEO_WIDTH = 640;
+const VIDEO_HEIGHT = 480;
+
 /**
- * Analiza los objetos detectados por la cámara y determina
- * si coinciden con lo que busca el usuario
- * @param detections - Array de objetos detectados por COCO-SSD
- * @param targetProperties - Propiedades del objeto buscado
- * @returns Resultado del análisis de visión
+ * Calcula la posición del objeto en la imagen
+ */
+function calculatePosition(bbox: number[]): {
+  horizontal: 'left' | 'center' | 'right';
+  vertical: 'top' | 'middle' | 'bottom';
+  normalizedX: number;
+  normalizedY: number;
+} {
+  const [x, y, width, height] = bbox;
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+
+  const horizontal = centerX < VIDEO_WIDTH * 0.33 ? 'left'
+                    : centerX > VIDEO_WIDTH * 0.66 ? 'right'
+                    : 'center';
+
+  const vertical = centerY < VIDEO_HEIGHT * 0.33 ? 'top'
+                  : centerY > VIDEO_HEIGHT * 0.66 ? 'bottom'
+                  : 'middle';
+
+  const normalizedX = centerX / VIDEO_WIDTH;
+  const normalizedY = centerY / VIDEO_HEIGHT;
+
+  return { horizontal, vertical, normalizedX, normalizedY };
+}
+
+// Mapa de traducciones español -> COCO class names
+const SPANISH_TO_COCO: Record<string, string> = {
+  persona: 'person',
+  gente: 'person',
+  coche: 'car',
+  auto: 'car',
+  carro: 'car',
+  perro: 'dog',
+  gato: 'cat',
+  televisor: 'tv',
+  television: 'tv',
+  tele: 'tv',
+  celular: 'cell phone',
+  telefono: 'cell phone',
+  movil: 'cell phone',
+  laptop: 'laptop',
+  computadora: 'laptop',
+  ordenador: 'laptop',
+  silla: 'chair',
+  mesa: 'dining table',
+  botella: 'bottle',
+  libro: 'book',
+  mochila: 'backpack',
+  taza: 'cup',
+  inodoro: 'toilet',
+  bano: 'toilet',
+  sofa: 'couch',
+  sillon: 'couch',
+  cama: 'bed',
+  reloj: 'clock',
+};
+
+/**
+ * Analiza los objetos detectados por la cámara
  */
 export async function analyzeDetections(
-  detections: any[],
-  targetProperties: any
+  detections: Detection[],
+  targetProperties: TargetProperties
 ): Promise<VisionResult> {
-  const detectedObjects = detections.map(d => d.class).join(', ');
-  
-  const prompt = `Objetos detectados por la cámara: ${detectedObjects || 'ninguno'}
-Usuario busca: ${JSON.stringify(targetProperties)}
+  console.log('👁️ Vision Agent: Analizando detecciones...');
+  console.log('   Objetos detectados:', detections.map(d => d.class).join(', '));
+  console.log('   Target properties:', targetProperties);
 
-Analiza si alguno de los objetos detectados coincide con lo que busca el usuario.
+  const targetNameRaw = (targetProperties?.target || '')?.toString().toLowerCase().trim();
+  const colorRaw = (targetProperties?.color || '')?.toString().toLowerCase().trim();
 
-Responde SOLO con un objeto JSON válido (sin markdown):
-{
-  "found": true o false,
-  "bestMatch": "nombre del objeto más cercano",
-  "confidence": 0.85,
-  "position": "center"
-}`;
-
-  try {
-    const response = await callGemini(prompt);
-    const cleaned = cleanJsonResponse(response);
-    const parsed = JSON.parse(cleaned);
-    
-    console.log('✅ Vision Agent:', parsed);
-    return parsed;
-  } catch (error) {
-    console.error('❌ Error en Vision Agent:', error);
-    
-    // Fallback: usar primer objeto detectado
+  // Si no hay target específico, devolver no encontrado
+  if (!targetNameRaw && !colorRaw) {
+    console.log('   ⚠️ No hay target específico, no se puede buscar');
     return {
-      found: detections.length > 0,
-      bestMatch: detections[0]?.class || null,
-      confidence: detections[0]?.score || 0.7,
-      position: 'center'
+      found: false,
+      bestMatch: null,
+      confidence: 0,
+      position: 'center',
+      verticalPosition: 'middle',
+      normalizedX: 0.5,
+      normalizedY: 0.5,
+      requestedTarget: 'ninguno'
     };
   }
+
+  // Traducir el target al nombre COCO
+  const mappedName = SPANISH_TO_COCO[targetNameRaw] || targetNameRaw;
+  console.log('   Target traducido:', targetNameRaw, '->', mappedName);
+
+  // Buscar coincidencia exacta por nombre
+  if (mappedName) {
+    const candidates = detections.filter(d => {
+      const detectedClass = (d.class || '').toString().toLowerCase();
+      return detectedClass.includes(mappedName) || mappedName.includes(detectedClass);
+    });
+
+    console.log('   Candidatos encontrados:', candidates.length);
+
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.score - a.score);
+      const best = candidates[0];
+      const posInfo = calculatePosition(best.bbox);
+
+      console.log('   ✅ Encontrado:', best.class, 'en', posInfo.horizontal, '-', posInfo.vertical);
+
+      return {
+        found: true,
+        bestMatch: best.class,
+        confidence: best.score || 0.8,
+        position: posInfo.horizontal,
+        verticalPosition: posInfo.vertical,
+        normalizedX: posInfo.normalizedX,
+        normalizedY: posInfo.normalizedY,
+        requestedTarget: targetNameRaw
+      };
+    }
+  }
+
+  // Buscar por color si se especificó
+  if (colorRaw) {
+    const isRedQuery = colorRaw.includes('rojo') || colorRaw.includes('red');
+    if (isRedQuery) {
+      const redCandidates = detections.filter(d => d.colorAnalysis?.isRed);
+      if (redCandidates.length > 0) {
+        redCandidates.sort((a, b) => b.score - a.score);
+        const best = redCandidates[0];
+        const posInfo = calculatePosition(best.bbox);
+        return {
+          found: true,
+          bestMatch: best.class,
+          confidence: best.score || 0.75,
+          position: posInfo.horizontal,
+          verticalPosition: posInfo.vertical,
+          normalizedX: posInfo.normalizedX,
+          normalizedY: posInfo.normalizedY,
+          requestedTarget: `objeto ${colorRaw}`
+        };
+      }
+    }
+  }
+
+  // NO ENCONTRADO - No usar fallback a cualquier objeto
+  // El usuario pidió algo específico que no está en la escena
+  console.log('   ❌ No se encontró:', targetNameRaw || colorRaw);
+  console.log('   Objetos disponibles:', detections.map(d => d.class).join(', '));
+
+  return {
+    found: false,
+    bestMatch: null,
+    confidence: 0,
+    position: 'center',
+    verticalPosition: 'middle',
+    normalizedX: 0.5,
+    normalizedY: 0.5,
+    requestedTarget: targetNameRaw || colorRaw
+  };
 }

@@ -3,12 +3,14 @@
 // ============================================
 
 import { callGemini, cleanJsonResponse } from './geminiClient';
+import { safeJsonParse } from '@/utils/safeJson';
+import type { TargetProperties } from '@/types';
 
 // Exportar el tipo
 export interface SpeechResult {
   action: 'move_to' | 'turn' | 'search' | 'stop';
   target: string;
-  properties: Record<string, any>;
+  properties: TargetProperties;
 }
 
 /**
@@ -30,13 +32,13 @@ Responde SOLO con un objeto JSON válido (sin markdown, sin explicaciones):
   try {
     const response = await callGemini(prompt);
     const cleaned = cleanJsonResponse(response);
-    const parsed = JSON.parse(cleaned);
-    
+    const parsed = safeJsonParse(cleaned) as SpeechResult;
+
     console.log('✅ Speech Agent:', parsed);
     return parsed;
   } catch (error) {
     console.error('❌ Error en Speech Agent:', error);
-    
+
     // Fallback inteligente
     return {
       action: 'move_to',
