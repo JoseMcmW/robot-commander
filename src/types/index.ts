@@ -16,13 +16,13 @@ import type { ColorAnalysis } from '@/ml/colorDetection';
 export interface Detection {
   /** Clase del objeto detectado (ej: 'person', 'car', 'bottle') */
   class: string;
-  
+
   /** Confianza de la detección (0-1) */
   score: number;
-  
+
   /** Bounding box: [x, y, width, height] */
   bbox: [number, number, number, number];
-  
+
   /** Análisis de color opcional de la región detectada */
   colorAnalysis?: ColorAnalysis;
 }

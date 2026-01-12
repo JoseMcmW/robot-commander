@@ -30,15 +30,15 @@ function calculateTargetAngle(
   // Convertir coordenadas normalizadas a coordenadas del canvas (600x600)
   const targetX = targetNormalizedX * 600;
   const targetY = targetNormalizedY * 600;
-  
+
   // Calcular ángulo desde el robot hacia el objetivo
   const deltaX = targetX - robotX;
   const deltaY = targetY - robotY;
-  
+
   // atan2 devuelve radianes, convertir a grados
   const angleRad = Math.atan2(deltaY, deltaX);
   const angleDeg = (angleRad * 180) / Math.PI;
-  
+
   return angleDeg;
 }
 
@@ -50,10 +50,10 @@ function calculateTurn(
   targetAngle: number
 ): { direction: 'left' | 'right'; amount: number } {
   let diff = targetAngle - currentRotation;
-  
+
   while (diff > 180) diff -= 360;
   while (diff < -180) diff += 360;
-  
+
   if (diff > 0) {
     return { direction: 'right', amount: Math.abs(diff) };
   } else {
@@ -81,14 +81,14 @@ export async function planAction(
       visionResult.normalizedX,
       visionResult.normalizedY
     );
-    
+
     console.log('   Target angle:', targetAngle);
-    
+
     const turn = calculateTurn(robotState.rotation, targetAngle);
     const actions: RobotAction[] = [];
-    
+
     console.log('   Turn needed:', turn);
-    
+
     // Agregar giro si es necesario (más de 10 grados)
     if (turn.amount > 10) {
       actions.push({
@@ -96,14 +96,14 @@ export async function planAction(
         amount: Math.round(turn.amount)
       });
     }
-    
+
     // Agregar movimiento hacia adelante (8 pasos para acercarse más)
     actions.push({ type: 'move_forward', steps: 8 });
-    
+
     const positionDesc = `${visionResult.position}${visionResult.verticalPosition ? `-${visionResult.verticalPosition}` : ''}`;
-    
+
     console.log('   Actions planned:', actions);
-    
+
     return {
       actions,
       reasoning: `Girando ${Math.round(turn.amount)}° y avanzando hacia ${visionResult.bestMatch} (${positionDesc})`
@@ -139,17 +139,17 @@ Tipos de acción disponibles:
     const response = await callGemini(prompt);
     const cleaned = cleanJsonResponse(response);
     const parsed = safeJsonParse<ActionPlan>(cleaned);
-    
+
     console.log('✅ Planner Agent (Gemini):', parsed);
     return parsed;
   } catch (error) {
     console.error('❌ Error en Planner Agent:', error);
-    
+
     // Fallback inteligente basado en el comando
     const action = speechResult.action;
     let actions: RobotAction[] = [];
     let reasoning = 'Plan generado automáticamente';
-    
+
     if (action === 'move_to' || action === 'search') {
       actions = [{ type: 'move_forward', steps: 5 }];
       reasoning = 'Avanzando hacia adelante';
@@ -169,7 +169,7 @@ Tipos de acción disponibles:
       actions = [{ type: 'stop' }];
       reasoning = 'Deteniendo el robot';
     }
-    
+
     return { actions, reasoning };
   }
 }

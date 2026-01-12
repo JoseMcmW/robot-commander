@@ -17,10 +17,10 @@ export default function App() {
 
   const handleVoiceCommand = async (command: string) => {
     if (isProcessing) return;
-    
+
     setIsProcessing(true);
     robotState.addCommand(command);
-    
+
     try {
       const result = await orchestrateCommand(
         command,
@@ -29,7 +29,7 @@ export default function App() {
         setStatus
       );
       setLastResult(result);
-      
+
       // Actualizar el target en el store para visualización con coordenadas normalizadas
       if (result.visionResult?.found) {
         robotState.setTarget(
@@ -90,7 +90,7 @@ export default function App() {
           {/* Left Column - Vision */}
           <div className="space-y-6">
             <WebcamCapture onDetectionsUpdate={setDetections} />
-            
+
             <div className="bg-slate-800/50 backdrop-blur-sm p-5 rounded-xl border border-slate-700/50">
               <h3 className="font-bold mb-3 text-blue-300 flex items-center gap-2">
                 <Target size={18} />
@@ -114,7 +114,7 @@ export default function App() {
                   "Busca el objeto rojo"
                 </p>
               </div>
-              
+
               <button
                 onClick={testCommand}
                 disabled={isProcessing}
@@ -138,9 +138,9 @@ export default function App() {
           {/* Right Column - Robot & Control */}
           <div className="space-y-6">
             <RobotCanvas />
-            
+
             <VoiceInput onCommand={handleVoiceCommand} />
-            
+
             {/* Status Panel */}
             <div className="bg-slate-800/50 backdrop-blur-sm p-5 rounded-xl border border-slate-700/50">
               <h3 className="font-bold mb-3 text-green-400 flex items-center gap-2">
@@ -151,7 +151,7 @@ export default function App() {
                 {isProcessing && <Loader2 className="animate-spin text-blue-400" size={16} />}
                 <p className="text-sm text-slate-300">{status}</p>
               </div>
-              
+
               {lastResult?.visionResult && (
                 <div className="mt-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700/30">
                   <p className="text-xs text-slate-500 mb-1 flex items-center gap-1">
@@ -159,14 +159,14 @@ export default function App() {
                     Vision Agent:
                   </p>
                   <p className={`text-sm ${lastResult.visionResult.found ? 'text-green-400' : 'text-amber-400'}`}>
-                    {lastResult.visionResult.found 
+                    {lastResult.visionResult.found
                       ? `✅ Encontrado: ${lastResult.visionResult.bestMatch} (${(lastResult.visionResult.confidence * 100).toFixed(0)}%) - ${lastResult.visionResult.position}-${lastResult.visionResult.verticalPosition || 'middle'}`
                       : '⚠️ No se encontró el objeto buscado'
                     }
                   </p>
                 </div>
               )}
-              
+
               {lastResult?.plan?.reasoning && (
                 <div className="mt-3 p-3 bg-slate-900/50 rounded-lg border border-green-500/20">
                   <p className="text-xs text-slate-500 mb-1">💡 Decisión de IA:</p>
@@ -174,7 +174,7 @@ export default function App() {
                 </div>
               )}
             </div>
-            
+
             {/* Command History */}
             <div className="bg-slate-800/50 backdrop-blur-sm p-5 rounded-xl border border-slate-700/50">
               <h3 className="font-bold mb-3 text-purple-400">📝 Historial de Comandos</h3>

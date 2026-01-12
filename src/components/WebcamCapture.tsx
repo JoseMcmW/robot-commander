@@ -93,17 +93,17 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
   useEffect(() => {
     // Copy ref to avoid stale closure in cleanup
     const currentVideo = videoRef.current;
-    
+
     async function setup() {
       try {
         // Inicializar modelo
         await detector.initialize();
-        
+
         // Iniciar webcam
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: 640, height: 480 } 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480 }
         });
-        
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
@@ -117,7 +117,7 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
         setIsLoading(false);
       }
     }
-    
+
     setup();
 
     return () => {
@@ -141,19 +141,19 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
             </div>
           </div>
         )}
-        
+
         {/* Video oculto (solo para captura) */}
-        <video 
-          ref={videoRef} 
+        <video
+          ref={videoRef}
           style={{ display: 'none' }}
           playsInline
           autoPlay
           muted
         />
-        
+
         {/* Canvas que muestra video + detecciones */}
-        <canvas 
-          ref={canvasRef} 
+        <canvas
+          ref={canvasRef}
           className="w-full rounded-lg border-2 border-blue-500 bg-black"
         />
       </div>
@@ -170,8 +170,8 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
             </span>
           ) : (
             detections.map((d, i) => (
-              <span 
-                key={i} 
+              <span
+                key={i}
                 className="px-3 py-1 bg-green-600 text-white rounded-full text-sm"
               >
                 {d.class} ({(d.score * 100).toFixed(0)}%)

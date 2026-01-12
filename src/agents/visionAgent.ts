@@ -22,7 +22,7 @@ const VIDEO_HEIGHT = 480;
 /**
  * Calcula la posición del objeto en la imagen
  */
-function calculatePosition(bbox: number[]): { 
+function calculatePosition(bbox: number[]): {
   horizontal: 'left' | 'center' | 'right';
   vertical: 'top' | 'middle' | 'bottom';
   normalizedX: number;
@@ -31,18 +31,18 @@ function calculatePosition(bbox: number[]): {
   const [x, y, width, height] = bbox;
   const centerX = x + width / 2;
   const centerY = y + height / 2;
-  
-  const horizontal = centerX < VIDEO_WIDTH * 0.33 ? 'left' 
-                   : centerX > VIDEO_WIDTH * 0.66 ? 'right' 
-                   : 'center';
-  
+
+  const horizontal = centerX < VIDEO_WIDTH * 0.33 ? 'left'
+                    : centerX > VIDEO_WIDTH * 0.66 ? 'right'
+                    : 'center';
+
   const vertical = centerY < VIDEO_HEIGHT * 0.33 ? 'top'
-                 : centerY > VIDEO_HEIGHT * 0.66 ? 'bottom'
-                 : 'middle';
-  
+                  : centerY > VIDEO_HEIGHT * 0.66 ? 'bottom'
+                  : 'middle';
+
   const normalizedX = centerX / VIDEO_WIDTH;
   const normalizedY = centerY / VIDEO_HEIGHT;
-  
+
   return { horizontal, vertical, normalizedX, normalizedY };
 }
 
@@ -124,9 +124,9 @@ export async function analyzeDetections(
       candidates.sort((a, b) => b.score - a.score);
       const best = candidates[0];
       const posInfo = calculatePosition(best.bbox);
-      
+
       console.log('   ✅ Encontrado:', best.class, 'en', posInfo.horizontal, '-', posInfo.vertical);
-      
+
       return {
         found: true,
         bestMatch: best.class,
@@ -149,7 +149,6 @@ export async function analyzeDetections(
         redCandidates.sort((a, b) => b.score - a.score);
         const best = redCandidates[0];
         const posInfo = calculatePosition(best.bbox);
-        
         return {
           found: true,
           bestMatch: best.class,

@@ -3,9 +3,9 @@ import { useRobotStore } from '@/store/useRobotStore';
 
 export function RobotCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { 
-    x, y, rotation, currentAction, 
-    targetObject, targetNormalizedX, targetNormalizedY 
+  const {
+    x, y, rotation, currentAction,
+    targetObject, targetNormalizedX, targetNormalizedY
   } = useRobotStore();
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function RobotCanvas() {
       // SIN inversión - izquierda en cámara = izquierda en canvas
       const targetX = targetNormalizedX * CANVAS_SIZE;
       const targetY = targetNormalizedY * CANVAS_SIZE;
-      
+
       // Target glow
       const gradient = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, 50);
       gradient.addColorStop(0, 'rgba(34, 197, 94, 0.5)');
@@ -58,7 +58,7 @@ export function RobotCanvas() {
       ctx.beginPath();
       ctx.arc(targetX, targetY, 20, 0, Math.PI * 2);
       ctx.stroke();
-      
+
       // Crosshair lines
       ctx.beginPath();
       ctx.moveTo(targetX - 30, targetY);
@@ -70,7 +70,7 @@ export function RobotCanvas() {
       ctx.moveTo(targetX, targetY + 10);
       ctx.lineTo(targetX, targetY + 30);
       ctx.stroke();
-      
+
       // Target label
       ctx.fillStyle = '#22c55e';
       ctx.font = 'bold 12px Inter, Arial';
@@ -160,7 +160,7 @@ export function RobotCanvas() {
     ctx.moveTo(0, -20);
     ctx.lineTo(0, -32);
     ctx.stroke();
-    
+
     ctx.fillStyle = '#ef4444';
     ctx.beginPath();
     ctx.arc(0, -35, 4, 0, Math.PI * 2);
@@ -173,7 +173,7 @@ export function RobotCanvas() {
     ctx.beginPath();
     ctx.roundRect(10, 10, 180, 45, 8);
     ctx.fill();
-    
+
     ctx.strokeStyle = '#334155';
     ctx.lineWidth = 1;
     ctx.stroke();
@@ -182,7 +182,7 @@ export function RobotCanvas() {
     ctx.font = '12px Inter, Arial';
     ctx.textAlign = 'left';
     ctx.fillText('Estado:', 20, 28);
-    
+
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 14px Inter, Arial';
     ctx.fillText(currentAction, 20, 46);
@@ -192,7 +192,7 @@ export function RobotCanvas() {
     ctx.beginPath();
     ctx.roundRect(CANVAS_SIZE - 120, 10, 110, 30, 8);
     ctx.fill();
-    
+
     ctx.fillStyle = '#64748b';
     ctx.font = '11px monospace';
     ctx.textAlign = 'right';

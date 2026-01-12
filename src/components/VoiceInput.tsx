@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff, Send } from 'lucide-react';
-import type { 
-  SpeechRecognition, 
-  SpeechRecognitionEvent, 
-  SpeechRecognitionErrorEvent 
+import type {
+  SpeechRecognition,
+  SpeechRecognitionEvent,
+  SpeechRecognitionErrorEvent
 } from '@/types';
 
 interface VoiceInputProps {
@@ -133,8 +133,8 @@ export function VoiceInput({ onCommand }: VoiceInputProps) {
         <button
           onClick={toggleListening}
           className={`p-3 rounded-full transition-all ${
-            isListening 
-              ? 'bg-red-600 animate-pulse shadow-lg shadow-red-500/50' 
+            isListening
+              ? 'bg-red-600 animate-pulse shadow-lg shadow-red-500/50'
               : 'bg-blue-600 hover:bg-blue-500'
           }`}
           title={isListening ? 'Haz clic para enviar el comando' : 'Haz clic para empezar a hablar'}
@@ -142,7 +142,7 @@ export function VoiceInput({ onCommand }: VoiceInputProps) {
           {isListening ? <Mic className="text-white" size={20} /> : <MicOff className="text-white" size={20} />}
         </button>
       </div>
-      
+
       {/* Transcripción de voz */}
       <div className="bg-slate-900/50 p-3 rounded-lg min-h-[48px] mb-3">
         <p className={`text-sm ${transcript ? 'text-white' : 'text-slate-500'}`}>

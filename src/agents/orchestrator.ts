@@ -32,7 +32,7 @@ export async function orchestrateCommand(
   console.log('🚀 Orchestrator: Iniciando procesamiento de comando');
   console.log('   Comando:', voiceCommand);
   console.log('   Objetos detectados:', detections.length);
-  
+
   try {
     // ============================================
     // STEP 1: SPEECH AGENT
@@ -41,27 +41,27 @@ export async function orchestrateCommand(
     onStatusUpdate('🎤 Procesando comando de voz...');
     const speechResult = await processSpeech(voiceCommand);
     console.log('   Speech result:', speechResult);
-    
+
     // ============================================
     // STEP 2: VISION AGENT
     // Analiza los objetos detectados por la cámara
     // IMPORTANTE: Pasar el target junto con las properties
     // ============================================
     onStatusUpdate('👁️ Analizando objetos detectados...');
-    const targetProperties = { 
-      ...speechResult.properties, 
-      target: speechResult.target 
+    const targetProperties = {
+      ...speechResult.properties,
+      target: speechResult.target
     };
     console.log('   Target properties para Vision:', targetProperties);
     const visionResult = await analyzeDetections(detections, targetProperties);
     console.log('   Vision result:', visionResult);
-    
+
     // ============================================
     // STEP 3: PLANNER AGENT
     // Planifica la secuencia de acciones
     // ============================================
     onStatusUpdate('🧠 Planificando acciones...');
-    
+
     // Si no se encontró el objeto, no planificar movimiento hacia él
     if (!visionResult.found) {
       const notFoundPlan: ActionPlan = {
@@ -71,22 +71,22 @@ export async function orchestrateCommand(
       onStatusUpdate(`⚠️ ${notFoundPlan.reasoning}`);
       return { speechResult, visionResult, plan: notFoundPlan };
     }
-    
+
     const plan = await planAction(speechResult, visionResult, robotState);
     console.log('   Plan:', plan);
-    
+
     // ============================================
     // STEP 4: EXECUTOR AGENT
     // Ejecuta las acciones planificadas
     // ============================================
     onStatusUpdate(`🤖 Ejecutando: ${plan.reasoning}`);
     await executeActions(plan.actions);
-    
+
     onStatusUpdate('✅ Comando completado exitosamente');
-    
+
     console.log('✅ Orchestrator: Procesamiento completo');
     return { speechResult, visionResult, plan };
-    
+
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
     onStatusUpdate('❌ Error: ' + errorMsg);
@@ -109,7 +109,7 @@ export async function orchestrateSimpleCommand(
     right: [{ type: 'turn_right' as const, amount: 45 }],
     stop: [{ type: 'stop' as const }]
   };
-  
+
   onStatusUpdate(`🤖 Ejecutando: ${action}`);
   await executeActions(actionMap[action]);
   onStatusUpdate('✅ Completado');

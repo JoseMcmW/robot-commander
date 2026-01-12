@@ -33,12 +33,12 @@ Responde SOLO con un objeto JSON válido (sin markdown, sin explicaciones):
     const response = await callGemini(prompt);
     const cleaned = cleanJsonResponse(response);
     const parsed = safeJsonParse(cleaned) as SpeechResult;
-    
+
     console.log('✅ Speech Agent:', parsed);
     return parsed;
   } catch (error) {
     console.error('❌ Error en Speech Agent:', error);
-    
+
     // Fallback inteligente
     return {
       action: 'move_to',

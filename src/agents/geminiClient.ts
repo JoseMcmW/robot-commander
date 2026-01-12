@@ -57,7 +57,7 @@ function getDemoResponse(prompt: string): string {
       properties: { direction: 'forward' }
     });
   }
-  
+
   if (prompt.includes('Objetos detectados')) {
     return JSON.stringify({
       found: true,
@@ -66,7 +66,7 @@ function getDemoResponse(prompt: string): string {
       position: 'center'
     });
   }
-  
+
   if (prompt.includes('planificador')) {
     return JSON.stringify({
       actions: [
@@ -75,7 +75,7 @@ function getDemoResponse(prompt: string): string {
       reasoning: 'Moviéndose hacia adelante (modo demo)'
     });
   }
-  
+
   return '{}';
 }
 

@@ -12,46 +12,46 @@ import type { RobotAction } from './plannerAgent';
 export async function executeActions(actions: RobotAction[]): Promise<void> {
   console.log('🤖 Executor Agent: Iniciando ejecución de', actions.length, 'acciones');
   console.log('🤖 Acciones a ejecutar:', JSON.stringify(actions));
-  
+
   const store = useRobotStore.getState();
-  
+
   for (const action of actions) {
     console.log('🤖 Ejecutando acción:', action.type, action);
-    
+
     // Delay entre acciones para visualización
     await new Promise(resolve => setTimeout(resolve, 200));
-    
+
     switch (action.type) {
       case 'move_forward':
         await executeMoveForward(store, action.steps || 3);
         break;
-        
+
       case 'move_backward':
         await executeMoveBackward(store, action.steps || 3);
         break;
-        
+
       case 'turn_left':
         await executeTurnLeft(store, action.amount || 45);
         break;
-        
+
       case 'turn_right':
         await executeTurnRight(store, action.amount || 45);
         break;
-        
+
       case 'stop':
         store.stop();
         console.log('  ⏸️ Robot detenido');
         break;
-        
+
       default:
         console.warn(`  ⚠️ Acción desconocida: ${action.type}`);
     }
   }
-  
+
   // Esperar un momento y resetear el estado a idle
   await new Promise(resolve => setTimeout(resolve, 300));
   store.stop();
-  
+
   console.log('✅ Executor Agent: Todas las acciones completadas');
 }
 

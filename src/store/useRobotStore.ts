@@ -25,7 +25,7 @@ interface RobotActions {
   stop: () => void;
   addCommand: (cmd: string) => void;
   setTarget: (
-    object: string | null, 
+    object: string | null,
     position: 'left' | 'center' | 'right' | null,
     verticalPosition?: 'top' | 'middle' | 'bottom' | null,
     normalizedX?: number | null,
@@ -83,9 +83,9 @@ export const useRobotStore = create<RobotState & RobotActions>((set) => ({
     currentAction: 'Girando ➡️'
   })),
 
-  stop: () => set({ 
-    isMoving: false, 
-    currentAction: 'Listo 🤖' 
+  stop: () => set({
+    isMoving: false,
+    currentAction: 'Listo 🤖'
   }),
 
   addCommand: (cmd) => set((state) => ({
