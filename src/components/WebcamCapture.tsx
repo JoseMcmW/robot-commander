@@ -19,7 +19,8 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
     const video = videoRef.current;
     if (!canvas || !video) return;
 
-    const ctx = canvas.getContext('2d');
+    // Usar willReadFrequently para evitar warnings de performance
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     // Ajustar tamaño del canvas al video
@@ -68,7 +69,8 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
         enriched.forEach((p) => {
           try {
             const [x, y, width, height] = p.bbox.map((v: number) => Math.max(0, Math.floor(v)));
-            const ctx = canvasRef.current?.getContext('2d');
+            // Usar willReadFrequently para evitar warnings de performance
+            const ctx = canvasRef.current?.getContext('2d', { willReadFrequently: true });
             if (ctx && width > 0 && height > 0) {
               const img = ctx.getImageData(x, y, width, height);
               const colorAnalysis = analyzeRegionColor(img, 0.12); // threshold

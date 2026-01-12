@@ -124,28 +124,28 @@ export function VoiceInput({ onCommand }: VoiceInputProps) {
   };
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-bold flex items-center gap-2">
-          {isListening ? <Mic className="text-red-400 animate-pulse" /> : <MicOff className="text-slate-400" />}
+    <div className="bg-slate-800/50 backdrop-blur-sm p-3 sm:p-4 rounded-xl border border-slate-700/50">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-white font-bold flex items-center gap-2 text-sm sm:text-base">
+          {isListening ? <Mic className="text-red-400 animate-pulse" size={18} /> : <MicOff className="text-slate-400" size={18} />}
           Control por Voz
         </h3>
         <button
           onClick={toggleListening}
-          className={`p-3 rounded-full transition-all ${
+          className={`p-2 sm:p-3 rounded-full transition-all ${
             isListening
               ? 'bg-red-600 animate-pulse shadow-lg shadow-red-500/50'
               : 'bg-blue-600 hover:bg-blue-500'
           }`}
           title={isListening ? 'Haz clic para enviar el comando' : 'Haz clic para empezar a hablar'}
         >
-          {isListening ? <Mic className="text-white" size={20} /> : <MicOff className="text-white" size={20} />}
+          {isListening ? <Mic className="text-white" size={18} /> : <MicOff className="text-white" size={18} />}
         </button>
       </div>
 
       {/* Transcripción de voz */}
-      <div className="bg-slate-900/50 p-3 rounded-lg min-h-[48px] mb-3">
-        <p className={`text-sm ${transcript ? 'text-white' : 'text-slate-500'}`}>
+      <div className="bg-slate-900/50 p-2.5 sm:p-3 rounded-lg min-h-[48px] mb-3">
+        <p className={`text-xs sm:text-sm break-words ${transcript ? 'text-white' : 'text-slate-500'}`}>
           {transcript || (supported ? 'Haz clic en el micrófono → habla → haz clic otra vez para enviar' : 'Speech Recognition no soportado')}
         </p>
       </div>
@@ -163,15 +163,15 @@ export function VoiceInput({ onCommand }: VoiceInputProps) {
           type="text"
           value={manualInput}
           onChange={(e) => setManualInput(e.target.value)}
-          placeholder="Escribe un comando aquí (ej: ve hacia la persona)"
-          className="flex-1 bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+          placeholder="Escribe un comando aquí..."
+          className="flex-1 bg-slate-900/50 border border-slate-700 rounded-lg px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
         />
         <button
           type="submit"
           disabled={!manualInput.trim()}
-          className="bg-green-600 hover:bg-green-500 disabled:bg-slate-700 disabled:cursor-not-allowed px-3 py-2 rounded-lg transition-colors"
+          className="bg-green-600 hover:bg-green-500 disabled:bg-slate-700 disabled:cursor-not-allowed px-2.5 sm:px-3 py-2 rounded-lg transition-colors flex-shrink-0"
         >
-          <Send size={18} className="text-white" />
+          <Send size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
         </button>
       </form>
     </div>
