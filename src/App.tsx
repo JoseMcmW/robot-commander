@@ -5,12 +5,14 @@ import { RobotCanvas } from './components/RobotCanvas';
 import { orchestrateCommand } from './agents';
 import { useRobotStore } from './store/useRobotStore';
 import { Loader2, Bot, Sparkles, Eye, Target, Cpu } from 'lucide-react';
+import type { Detection } from './types';
+import type { OrchestrationResult } from './agents/orchestrator';
 
 export default function App() {
   const [status, setStatus] = useState('🤖 Esperando comando...');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [detections, setDetections] = useState<any[]>([]);
-  const [lastResult, setLastResult] = useState<any>(null);
+  const [detections, setDetections] = useState<Detection[]>([]);
+  const [lastResult, setLastResult] = useState<OrchestrationResult | null>(null);
   const robotState = useRobotStore();
 
   const handleVoiceCommand = async (command: string) => {

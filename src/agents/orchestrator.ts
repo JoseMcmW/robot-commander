@@ -10,7 +10,9 @@ import type { SpeechResult } from './speechAgent';
 import type { VisionResult } from './visionAgent';
 import type { ActionPlan } from './plannerAgent';
 import { executeActions } from './executorAgent';
+import type { Detection } from '@/types';
 
+// Exported for use in other files
 export interface OrchestrationResult {
   speechResult: SpeechResult;
   visionResult: VisionResult;
@@ -23,7 +25,7 @@ export interface OrchestrationResult {
  */
 export async function orchestrateCommand(
   voiceCommand: string,
-  detections: unknown[],
+  detections: Detection[],
   robotState: { x: number; y: number; rotation: number },
   onStatusUpdate: (status: string) => void
 ): Promise<OrchestrationResult> {

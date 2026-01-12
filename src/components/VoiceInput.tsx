@@ -1,18 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff, Send } from 'lucide-react';
+import type { 
+  SpeechRecognition, 
+  SpeechRecognitionEvent, 
+  SpeechRecognitionErrorEvent 
+} from '@/types';
 
 interface VoiceInputProps {
   onCommand: (text: string) => void;
 }
 
 export function VoiceInput({ onCommand }: VoiceInputProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [manualInput, setManualInput] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [supported] = useState(Boolean(SpeechRecognitionCtor));
   const lastTranscriptRef = useRef('');
 
@@ -48,8 +51,7 @@ export function VoiceInput({ onCommand }: VoiceInputProps) {
     recog.lang = 'es-ES';
     recog.maxAlternatives = 1;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recog.onresult = (event: any) => {
+    recog.onresult = (event: SpeechRecognitionEvent) => {
       let currentTranscript = '';
 
       for (let i = 0; i < event.results.length; i++) {
@@ -61,8 +63,7 @@ export function VoiceInput({ onCommand }: VoiceInputProps) {
       lastTranscriptRef.current = currentTranscript;
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recog.onerror = (event: any) => {
+    recog.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('❌ Error de reconocimiento de voz:', event.error);
       if (event.error !== 'aborted' && event.error !== 'no-speech') {
         setIsListening(false);

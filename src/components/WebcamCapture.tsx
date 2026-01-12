@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { ObjectDetector } from '@/ml/objectDetection';
 import { analyzeRegionColor } from '@/ml/colorDetection';
 import { Camera, Loader2 } from 'lucide-react';
+import type { Detection } from '@/types';
 
 interface WebcamCaptureProps {
-  onDetectionsUpdate?: (detections: any[]) => void;
+  onDetectionsUpdate?: (detections: Detection[]) => void;
 }
 
 export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
@@ -12,8 +13,8 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [detector] = useState(() => new ObjectDetector());
   const [isLoading, setIsLoading] = useState(true);
-  const [detections, setDetections] = useState<any[]>([]);
-  function drawDetections(predictions: any[], videoOnly = false) {
+  const [detections, setDetections] = useState<Detection[]>([]);
+  function drawDetections(predictions: Detection[], videoOnly = false) {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     if (!canvas || !video) return;
@@ -36,7 +37,7 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
     ctx.font = 'bold 18px Arial';
     ctx.fillStyle = '#00ff00';
 
-    predictions.forEach((prediction: any) => {
+    predictions.forEach((prediction) => {
       const [x, y, width, height] = prediction.bbox;
       // Rectángulo
       ctx.strokeRect(x, y, width, height);
@@ -51,20 +52,20 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
     });
   }
 
-  async function startDetection() {
+  const startDetection = useCallback(async () => {
     if (!videoRef.current) return;
     const detect = async () => {
       try {
         const predictions = await detector.detect(videoRef.current!);
 
         // Enrich predictions with simple color analysis per bbox
-        const enriched = predictions.map((p: any) => ({ ...p }));
+        const enriched = predictions.map((p) => ({ ...p } as Detection));
 
         // draw video first so we can sample pixels
         drawDetections(enriched, true); // pass flag to draw video only
 
         // sample each bbox for color
-        enriched.forEach((p: any) => {
+        enriched.forEach((p) => {
           try {
             const [x, y, width, height] = p.bbox.map((v: number) => Math.max(0, Math.floor(v)));
             const ctx = canvasRef.current?.getContext('2d');
@@ -87,9 +88,12 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
       requestAnimationFrame(detect);
     };
     detect();
-  }
+  }, [detector, onDetectionsUpdate]);
 
   useEffect(() => {
+    // Copy ref to avoid stale closure in cleanup
+    const currentVideo = videoRef.current;
+    
     async function setup() {
       try {
         // Inicializar modelo
@@ -117,14 +121,13 @@ export function WebcamCapture({ onDetectionsUpdate }: WebcamCaptureProps) {
     setup();
 
     return () => {
-      // Cleanup - copy the stream reference to avoid stale ref issues
-      const vid = videoRef.current;
-      if (vid?.srcObject) {
-        const tracks = (vid.srcObject as MediaStream).getTracks();
+      // Cleanup - use copied ref to avoid stale ref issues
+      if (currentVideo?.srcObject) {
+        const tracks = (currentVideo.srcObject as MediaStream).getTracks();
         tracks.forEach(track => track.stop());
       }
     };
-  }, [detector]);
+  }, [detector, startDetection]);
 
 
   return (

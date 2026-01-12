@@ -2,8 +2,7 @@
 // VISION AGENT - Analiza objetos detectados
 // ============================================
 
-import { callGemini, cleanJsonResponse } from './geminiClient';
-import { safeJsonParse } from '@/utils/safeJson';
+import type { Detection, TargetProperties } from '@/types';
 
 export interface VisionResult {
   found: boolean;
@@ -83,8 +82,8 @@ const SPANISH_TO_COCO: Record<string, string> = {
  * Analiza los objetos detectados por la cámara
  */
 export async function analyzeDetections(
-  detections: any[],
-  targetProperties: any
+  detections: Detection[],
+  targetProperties: TargetProperties
 ): Promise<VisionResult> {
   console.log('👁️ Vision Agent: Analizando detecciones...');
   console.log('   Objetos detectados:', detections.map(d => d.class).join(', '));
@@ -122,7 +121,7 @@ export async function analyzeDetections(
     console.log('   Candidatos encontrados:', candidates.length);
 
     if (candidates.length > 0) {
-      candidates.sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
+      candidates.sort((a, b) => b.score - a.score);
       const best = candidates[0];
       const posInfo = calculatePosition(best.bbox);
       
@@ -147,7 +146,7 @@ export async function analyzeDetections(
     if (isRedQuery) {
       const redCandidates = detections.filter(d => d.colorAnalysis?.isRed);
       if (redCandidates.length > 0) {
-        redCandidates.sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
+        redCandidates.sort((a, b) => b.score - a.score);
         const best = redCandidates[0];
         const posInfo = calculatePosition(best.bbox);
         
